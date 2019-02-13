@@ -4,23 +4,29 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
+// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
+
+type VmwareVmDetail struct {
+    // TODO: list required details
+}
+
+type VmwareVm struct {
+    name string `json:"name"`,
+    detailRequest bool `json:"detailRequest,omitempty"` // true if details are requested to be loaded
+    detail VmwareVmDetail `json:"detail,omitempty"`,
+}
 
 // V2VVmwareSpec defines the desired state of V2VVmware
 // +k8s:openapi-gen=true
 type V2VVmwareSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
+    Connection string `json:"connection,omitempty"`, // name of Secret wit vmware connection details
+	Vms []VmwareVm `json:"vms,omitempty"`
 }
 
 // V2VVmwareStatus defines the observed state of V2VVmware
 // +k8s:openapi-gen=true
 type V2VVmwareStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
 	Phase string `json:"phase,omitempty"` // one of the Phase* constants
 }
 

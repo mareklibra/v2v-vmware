@@ -12,15 +12,15 @@ type VmwareVmDetail struct {
 }
 
 type VmwareVm struct {
-    Name string `json:"name"`,
+    Name string `json:"name"`
     DetailRequest bool `json:"detailRequest,omitempty"` // true if details are requested to be loaded
-    Detail VmwareVmDetail `json:"detail,omitempty"`,
+    Detail VmwareVmDetail `json:"detail,omitempty"`
 }
 
 // V2VVmwareSpec defines the desired state of V2VVmware
 // +k8s:openapi-gen=true
 type V2VVmwareSpec struct {
-    Connection string `json:"connection,omitempty"`, // name of Secret wit vmware connection details
+    Connection string `json:"connection,omitempty"` // name of Secret wit vmware connection details
 	Vms []VmwareVm `json:"vms,omitempty"`
 }
 

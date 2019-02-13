@@ -15,8 +15,7 @@ spec:
       serviceAccountName: v2v-vmware
       containers:
         - name: v2v-vmware
-          # Replace this with the built image name
-          image: REPLACE_IMAGE
+          image: quay.io/mareklibra/v2v-vmware:v0.0.1
           command:
           - v2v-vmware
           imagePullPolicy: Always

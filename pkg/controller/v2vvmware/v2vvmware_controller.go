@@ -18,7 +18,7 @@ import (
 )
 
 const PhaseConnecting = "Connecting"
-const PhaseConnectionSuccessful = "True"
+const PhaseConnectionSuccessful = "ConnectionVerified"
 const PhaseConnectionFailed = "Failed"
 
 var log = logf.Log.WithName("controller_v2vvmware")
@@ -52,17 +52,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-/*
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner V2VVmware
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &kubevirtv1alpha1.V2VVmware{},
-	})
-	if err != nil {
-		return err
-	}
-*/
+
 	return nil
 }
 
@@ -93,9 +83,11 @@ func (r *ReconcileV2VVmware) Reconcile(request reconcile.Request) (reconcile.Res
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
+			reqLogger.Info("The request object cannot be found.")
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
+		reqLogger.Info("Error reading the request object, requeuing.")
 		return reconcile.Result{}, err
 	}
 
@@ -104,8 +96,17 @@ func (r *ReconcileV2VVmware) Reconcile(request reconcile.Request) (reconcile.Res
     	reqLogger.Error(err, "Failed to get Secret object for the VMWare connection")
 		return reconcile.Result{}, err // request will be re-queued
 	}
+	reqLogger.Info("Connection secret retrieved.")
 
-    if instance.Spec.Vms == nil { // if missing at all, then just connection check is requested
+    if !instance.Spec.ListVmsRequest {
+		// true if list of VMWare VMs shall start to be retrieved
+		// Imperative hack to enable quick/independent check of credentials in the most simple way
+
+		if instance.Status.Phase == PhaseConnectionSuccessful {
+			reqLogger.Info("The checkConnectionOnly() already finished, nothing to do.")
+			return reconcile.Result{}, nil
+		}
+
     	err = checkConnectionOnly(r, request, connectionSecret)
     	if err != nil {
 			reqLogger.Error(err, "Failed to check VMWare connection.")

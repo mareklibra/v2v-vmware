@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	kubevirtv1alpha1 "kubevirt.io/v2v-vmware/pkg/apis/kubevirt/v1alpha1"
@@ -23,7 +24,10 @@ func getConnectionSecret(r *ReconcileV2VVmware, request reconcile.Request, insta
 }
 
 func checkConnectionOnly(r *ReconcileV2VVmware, request reconcile.Request, connectionSecret *corev1.Secret) (error) {
+	log.Info("checkConnectionOnly()")
 	updateStatusPhase(r, request, PhaseConnecting)
+
+	time.Sleep(5 * time.Second)
 
 	// TODO: verify connection to VMWare
 	if true {
@@ -36,6 +40,7 @@ func checkConnectionOnly(r *ReconcileV2VVmware, request reconcile.Request, conne
 
 // read whole list at once
 func readVmsList(r *ReconcileV2VVmware, request reconcile.Request, connectionSecret *corev1.Secret) (error) {
+	log.Info("readVmsList()")
 	// TODO: read the list from VMWare
 	vmwareVms := []string{"fake_vm_1", "fake_vm_2", "fake_vm_3"}
 
@@ -64,9 +69,11 @@ func readVmsList(r *ReconcileV2VVmware, request reconcile.Request, connectionSec
 }
 
 func readVmDetail(r *ReconcileV2VVmware, request reconcile.Request, connectionSecret *corev1.Secret, vmwareVm *kubevirtv1alpha1.VmwareVm) (error) {
+	log.Info("readVmDetail()")
+
 	// TODO: read details of a single VM from VMWare (use vmwareVm.Name)
 	vmDetail := kubevirtv1alpha1.VmwareVmDetail{
-		// TODO: set fields
+		DummyAttr: "foo",
 	}
 
 	instance := &kubevirtv1alpha1.V2VVmware{}
@@ -76,10 +83,10 @@ func readVmDetail(r *ReconcileV2VVmware, request reconcile.Request, connectionSe
 		return err
 	}
 
-	for _, vm := range instance.Spec.Vms {
-		if vm.Name == vmwareVm.Name {
-			vm.DetailRequest = false // skip this next time
-			vm.Detail = vmDetail
+	for index, vm := range instance.Spec.Vms {
+		if  vm.Name == vmwareVm.Name {
+			instance.Spec.Vms[index].DetailRequest = false // skip this next time
+			instance.Spec.Vms[index].Detail = vmDetail
 		}
 	}
 
@@ -93,6 +100,7 @@ func readVmDetail(r *ReconcileV2VVmware, request reconcile.Request, connectionSe
 }
 
 func updateStatusPhase(r *ReconcileV2VVmware, request reconcile.Request, phase string) {
+	log.Info(fmt.Sprintf("updateStatusPhase(): %s", phase))
 	// reload instance to workaround issues with parallel writes
 	instance := &kubevirtv1alpha1.V2VVmware{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
@@ -101,9 +109,11 @@ func updateStatusPhase(r *ReconcileV2VVmware, request reconcile.Request, phase s
 		return
 	}
 
+	log.Info(fmt.Sprintf("old phase found in the instance: %s", instance.Status.Phase))
+
 	instance.Status.Phase = phase
 	err = r.client.Update(context.TODO(), instance)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to update V2VVmware status. Intended to write phase: '%s', message: %s", phase))
+		log.Error(err, fmt.Sprintf("Failed to update V2VVmware status. Intended to write phase: '%s'", phase))
 	}
 }

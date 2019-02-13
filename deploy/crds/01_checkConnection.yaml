@@ -3,5 +3,5 @@ kind: V2VVmware
 metadata:
   name: example-v2vvmware
 spec:
-  # Add fields here
-  size: 3
+  connection: v2v-vmware-token-52ncn
+

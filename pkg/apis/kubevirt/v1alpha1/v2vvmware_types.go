@@ -9,6 +9,7 @@ import (
 
 type VmwareVmDetail struct {
     // TODO: list required details
+    DummyAttr string `json:"dummyAttr,omitempty"`
 }
 
 type VmwareVm struct {
@@ -21,7 +22,8 @@ type VmwareVm struct {
 // +k8s:openapi-gen=true
 type V2VVmwareSpec struct {
     Connection string `json:"connection,omitempty"` // name of Secret wit vmware connection details
-	Vms []VmwareVm `json:"vms,omitempty"`
+	ListVmsRequest bool `json:"listVmsRequest,omitempty"`
+    Vms []VmwareVm `json:"vms,omitempty"`
 }
 
 // V2VVmwareStatus defines the observed state of V2VVmware

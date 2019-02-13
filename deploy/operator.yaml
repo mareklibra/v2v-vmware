@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: v2v-vmware
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: v2v-vmware
+  template:
+    metadata:
+      labels:
+        name: v2v-vmware
+    spec:
+      serviceAccountName: v2v-vmware
+      containers:
+        - name: v2v-vmware
+          # Replace this with the built image name
+          image: REPLACE_IMAGE
+          command:
+          - v2v-vmware
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "v2v-vmware"

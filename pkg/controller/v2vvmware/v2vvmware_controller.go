@@ -1,7 +1,8 @@
 package v2vvmware
 
 import (
-	"context"
+	"context",
+	"errors",
 
 	kubevirtv1alpha1 "kubevirt.io/v2v-vmware/pkg/apis/kubevirt/v1alpha1"
 
@@ -19,6 +20,10 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
+
+const PhaseConnecting = "Connecting"
+const PhaseConnectionSuccessful = "True"
+const PhaseConnectionFailed = "Failed"
 
 var log = logf.Log.WithName("controller_v2vvmware")
 
@@ -51,7 +56,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-
+/*
 	// TODO(user): Modify this to be the types you create that are owned by the primary resource
 	// Watch for changes to secondary resource Pods and requeue the owner V2VVmware
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
@@ -61,7 +66,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-
+*/
 	return nil
 }
 
@@ -77,8 +82,6 @@ type ReconcileV2VVmware struct {
 
 // Reconcile reads that state of the cluster for a V2VVmware object and makes changes based on the state read
 // and what is in the V2VVmware.Spec
-// TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
-// a Pod as an example
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
@@ -100,54 +103,140 @@ func (r *ReconcileV2VVmware) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	// Define a new Pod object
-	pod := newPodForCR(instance)
-
-	// Set V2VVmware instance as the owner and controller
-	if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
-		return reconcile.Result{}, err
+    connectionSecret, err := getConnectionSecret(r, request, instance)
+    if err != nil {
+    	reqLogger.Error(err, "Failed to get Secret object for the VMWare connection")
+		return reconcile.Result{}, err // request will be re-queued
 	}
 
-	// Check if this Pod already exists
-	found := &corev1.Pod{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-		err = r.client.Create(context.TODO(), pod)
-		if err != nil {
-			return reconcile.Result{}, err
+    if instance.Spec.Vms == nil { // if missing at all, then just connection check is requested
+    	err = checkConnectionOnly(r, request, instance, connectionSecret)
+    	if err != nil {
+			reqLogger.Error(err, "Failed to check VMWare connection.")
 		}
-
-		// Pod created successfully - don't requeue
-		return reconcile.Result{}, nil
-	} else if err != nil {
-		return reconcile.Result{}, err
+		return reconcile.Result{}, err // request will be re-queued if failed
 	}
 
-	// Pod already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
-	return reconcile.Result{}, nil
+    // Considering recent high-level flow, the list of VMWare VMs is read at most once (means: do not refresh).
+    // If refresh is ever needed, implement either here or re-create the V2VVmware object
+
+	if len(instance.Spec.Vms) == 0 { // list of VMWare VMs is requested to be retrieved
+		err = readVmsList(r, request, connectionSecret)
+		if err != nil {
+			reqLogger.Error(err, "Failed to read list of VMWare VMs.")
+		}
+		return reconcile.Result{}, err // request will be re-queued if failed
+	}
+
+    // secret is present, list of VMs is available, let's check for  details to be retrieved
+    var lastError = nil
+    for _, vm := range instance.Spec.Vms { // sequential read is probably good enough, just a single VM or a few of them are expected to be retrieved this way
+    	if vm.DetailRequest {
+			err = readVmDetail(r, request, connectionSecret, vm)
+			if err != nil {
+				reqLogger.Error(err, fmt.Sprintf("Failed to read detail of '%s' VMWare VM.", vm.name))
+				lastError = err
+			}
+		}
+	}
+
+	return reconcile.Result{}, lastError
 }
 
-// newPodForCR returns a busybox pod with the same name/namespace as the cr
-func newPodForCR(cr *kubevirtv1alpha1.V2VVmware) *corev1.Pod {
-	labels := map[string]string{
-		"app": cr.Name,
+func getConnectionSecret(r *ReconcileV2VVmware, request reconcile.Request, instance *kubevirtv1alpha1.V2VVmware) (*corev1.Secret, error) {
+    if instance.Spec.Connection == "" {
+        return nil, errors.New("The Spec.Connection is required in a V2VVmware object. References a Secret by name.")
+    }
+
+    secret := &corev1.Secret{}
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: instance.Spec.Connection, Namespace: request.Namespace}, secret)
+    return secret, err
+}
+
+func checkConnectionOnly(r *ReconcileV2VVmware, request reconcile.Request, instance *kubevirtv1alpha1.V2VVmware) (error) {
+	updateStatusPhase(r, request, PhaseConnecting)
+
+	// TODO: verify connection to VMWare
+	if true {
+		updateStatusPhase(r, request, PhaseConnectionSuccessful)
+	} else {
+		updateStatusPhase(r, request, PhaseConnectionFailed)
 	}
-	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name + "-pod",
-			Namespace: cr.Namespace,
-			Labels:    labels,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:    "busybox",
-					Image:   "busybox",
-					Command: []string{"sleep", "3600"},
-				},
-			},
-		},
+	return nil // TODO
+}
+
+// read whole list at once
+func readVmsList(r *ReconcileV2VVmware, request reconcile.Request, connectionSecret *corev1.Secret) (error) {
+	// TODO: read the list from VMWare
+	vmwareVms := []string{"fake_vm_1", "fake_vm_2", "fake_vm_3"}
+
+	instance := &kubevirtv1alpha1.V2VVmware{}
+	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to get V2VVmware object to update list of VMs, intended to write: '%s'", vmwareVms))
+		return err
+	}
+
+	instance.Spec.Vms = make([]VmwareVm, len(vmwareVms))
+	for index, vmName := range vmwareVms {
+		instance.Spec.Vms[index] = kubevirtv1alpha1.VmwareVm{
+			Name: vmName,
+			DetailRequest: false, // can be omitted, but just to be clear
+			Detail: nil,
+		}
+	}
+
+	err = r.client.Update(context.TODO(), instance)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update V2VVmware object with list of VMWare VMs, intended to write: '%s'", vmwareVms))
+		return err
+	}
+
+	return nil
+}
+
+func readVmDetail(r *ReconcileV2VVmware, request reconcile.Request, connectionSecret *corev1.Secret, vmwareVm *kubevirtv1alpha1.VmwareVm) (error) {
+	// TODO: read details of a single VM from VMWare (use vmwareVm.Name)
+	vmDetail := kubevirtv1alpha1.VmwareVmDetail{
+		// TODO: set fields
+	}
+
+	instance := &kubevirtv1alpha1.V2VVmware{}
+	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to get V2VVmware object to update detail of '%s' VM.", vmwareVm.Name))
+		return err
+	}
+
+	for _, vm := range instance.Spec.Vms {
+		if vm.Name == vmwareVm.Name {
+			vm.DetailRequest = false // skip this next time
+			vm.Detail = vmDetail
+		}
+	}
+
+	err = r.client.Update(context.TODO(), instance)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update V2VVmware object with detail of '%s' VM.", vmwareVms))
+		return err
+	}
+
+	return nil
+}
+
+func updateStatusPhase(r *ReconcileV2VVmware, request reconcile.Request, phase string) {
+	// reload instance to workaround issues with parallel writes
+	instance := &kubevirtv1alpha1.V2VVmware{}
+	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to get V2VVmware object to update status info. Intended to write phase: '%s'", phase))
+		return
+	}
+
+	instance.Status.Phase = phase
+	err = r.client.Update(context.TODO(), instance)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update V2VVmware status. Intended to write phase: '%s', message: %s", phase, msg))
 	}
 }
+

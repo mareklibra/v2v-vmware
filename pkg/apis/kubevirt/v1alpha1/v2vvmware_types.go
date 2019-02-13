@@ -12,9 +12,9 @@ type VmwareVmDetail struct {
 }
 
 type VmwareVm struct {
-    name string `json:"name"`,
-    detailRequest bool `json:"detailRequest,omitempty"` // true if details are requested to be loaded
-    detail VmwareVmDetail `json:"detail,omitempty"`,
+    Name string `json:"name"`,
+    DetailRequest bool `json:"detailRequest,omitempty"` // true if details are requested to be loaded
+    Detail VmwareVmDetail `json:"detail,omitempty"`,
 }
 
 // V2VVmwareSpec defines the desired state of V2VVmware

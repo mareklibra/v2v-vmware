@@ -22,7 +22,6 @@ type VmwareVm struct {
 // +k8s:openapi-gen=true
 type V2VVmwareSpec struct {
     Connection string `json:"connection,omitempty"` // name of Secret wit vmware connection details
-	ListVmsRequest bool `json:"listVmsRequest,omitempty"`
     Vms []VmwareVm `json:"vms,omitempty"`
 }
 

@@ -97,7 +97,7 @@ func (r *ReconcileV2VVmware) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err // request will be re-queued
 	}
 	reqLogger.Info("Connection secret retrieved.")
-
+/* Commented out: based on actual UI flow, the status.phase can be set within readVmsList and load of VMs can be initiated immediately
     if !instance.Spec.ListVmsRequest {
 		// true if list of VMWare VMs shall start to be retrieved
 		// Imperative hack to enable quick/independent check of credentials in the most simple way
@@ -113,7 +113,7 @@ func (r *ReconcileV2VVmware) Reconcile(request reconcile.Request) (reconcile.Res
 		}
 		return reconcile.Result{}, err // request will be re-queued if failed
 	}
-
+*/
     // Considering recent high-level flow, the list of VMWare VMs is read at most once (means: do not refresh).
     // If refresh is ever needed, implement either here or re-create the V2VVmware object
 

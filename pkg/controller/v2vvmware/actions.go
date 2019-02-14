@@ -15,7 +15,7 @@ import (
 
 func getConnectionSecret(r *ReconcileV2VVmware, request reconcile.Request, instance *kubevirtv1alpha1.V2VVmware) (*corev1.Secret, error) {
 	if instance.Spec.Connection == "" {
-		return nil, errors.New("The Spec.Connection is required in a V2VVmware object. References a Secret by name.")
+		return nil, errors.New("the Spec.Connection is required in a V2VVmware object. References a Secret by name")
 	}
 
 	secret := &corev1.Secret{}

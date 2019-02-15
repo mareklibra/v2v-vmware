@@ -20,6 +20,10 @@ import (
 const PhaseConnecting = "Connecting"
 const PhaseConnectionSuccessful = "ConnectionVerified"
 const PhaseConnectionFailed = "Failed"
+const PhaseLoadingVmsList = "LoadingVmsList"
+const PhaseLoadingVmsListFailed = "LoadingVmsList"
+const PhaseLoadingVmDetail = "LoadingVmDetail"
+const PhaseLoadingVmDetailFailed = "LoadingVmDetailFailed"
 
 var log = logf.Log.WithName("controller_v2vvmware")
 

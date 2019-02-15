@@ -27,10 +27,9 @@ const PhaseLoadingVmDetailFailed = "LoadingVmDetailFailed"
 
 var log = logf.Log.WithName("controller_v2vvmware")
 
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
+// TODO: implement garbage collector for V2VVMWare and Secret objects via
+// - setting timeToLive label based on presence of "cnv.io/temporary"
+// - checking for expiration by "timeToLive"
 
 // Add creates a new V2VVmware Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.

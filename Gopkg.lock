@@ -335,6 +335,28 @@
   version = "v1.0.3"
 
 [[projects]]
+  name = "github.com/vmware/govmomi"
+  packages = [
+    ".",
+    "nfc",
+    "object",
+    "property",
+    "session",
+    "task",
+    "view",
+    "vim25",
+    "vim25/debug",
+    "vim25/methods",
+    "vim25/mo",
+    "vim25/progress",
+    "vim25/soap",
+    "vim25/types",
+    "vim25/xml"
+  ]
+  revision = "bdf05b6cab86b1e9f40ee80a4d2cb07a0c25ef78"
+  version = "v0.20.0"
+
+[[projects]]
   name = "go.uber.org/atomic"
   packages = ["."]
   revision = "1ea20fb1cbb1cc08cbd0d913a96dead89aa18289"
@@ -715,15 +737,25 @@
     "pkg/client",
     "pkg/client/apiutil",
     "pkg/client/config",
+    "pkg/controller",
+    "pkg/event",
+    "pkg/handler",
+    "pkg/internal/controller",
+    "pkg/internal/controller/metrics",
     "pkg/internal/recorder",
     "pkg/leaderelection",
     "pkg/manager",
     "pkg/metrics",
     "pkg/patch",
+    "pkg/predicate",
+    "pkg/reconcile",
     "pkg/recorder",
     "pkg/runtime/inject",
     "pkg/runtime/log",
+    "pkg/runtime/scheme",
     "pkg/runtime/signals",
+    "pkg/source",
+    "pkg/source/internal",
     "pkg/webhook/admission",
     "pkg/webhook/admission/types",
     "pkg/webhook/internal/metrics",
@@ -754,6 +786,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "903667189e43e675727fd3082957bcb0d3f0483c28b378efe4f22e8a2e99d651"
+  inputs-digest = "915fbfc01601b767aa4f48924b5bf163fbd706da31c843d7f7cf355b1a7dcb0f"
   solver-name = "gps-cdcl"
   solver-version = 1

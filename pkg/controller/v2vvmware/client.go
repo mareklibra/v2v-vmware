@@ -81,7 +81,6 @@ func NewClient(ctx context.Context, credentials *LoginCredentials) (*Client, err
 	insecure := true // TODO
 
 	log.Info(fmt.Sprintf("NewClient, user: '%s', host: '%s'", credentials.username, credentials.host))
-	log.Info(fmt.Sprintf("NewClient, pwd: '%s'", credentials.password)) // TODO: remove me!!!!!
 
 	u := &url.URL{
 		Scheme: "https",

@@ -30,28 +30,6 @@ func sleepBeforeRetry() {
 	log.Info("Awake after sleep, going to retry")
 }
 
-/*
-func checkConnectionOnly(r *ReconcileV2VVmware, request reconcile.Request, connectionSecret *corev1.Secret) (error) {
-	log.Info("checkConnectionOnly()")
-	updateStatusPhase(r, request, PhaseConnecting)
-
-	time.Sleep(5 * time.Second)
-
-	// TODO: verify connection to VMWare
-	if true {
-		updateStatusPhase(r, request, PhaseConnectionSuccessful)
-	} else {
-		updateStatusPhase(r, request, PhaseConnectionFailed)
-	}
-	return nil // TODO
-}
-*/
-/*
-func logStruct(text string, v interface{}) {
-	strJson, _ := json.Marshal(v)
-	log.Info(text + string(strJson))
-}
-*/
 func getLoginCredentials(connectionSecret *corev1.Secret) (*LoginCredentials) {
 	data := connectionSecret.Data
 

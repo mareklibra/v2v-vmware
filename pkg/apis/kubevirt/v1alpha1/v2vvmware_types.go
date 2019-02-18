@@ -9,7 +9,7 @@ import (
 
 type VmwareVmDetail struct {
     // TODO: list required details
-    DummyAttr string `json:"dummyAttr,omitempty"`
+    Raw string `json:"raw,omitempty"`
 }
 
 type VmwareVm struct {

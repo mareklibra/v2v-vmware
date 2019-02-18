@@ -49,22 +49,22 @@ func (c *Client) GetVMs() ([]mo.VirtualMachine, error) {
 	return vms, nil
 }
 
-func (c *Client) GetVM(ctx context.Context, name string) (mo.VirtualMachine, error) {
+func (c *Client) GetVM(name string) (mo.VirtualMachine, error) {
 	client := c.Client
 
 	m := view.NewManager(client.Client)
 
 	var vm mo.VirtualMachine
 
-	v, err := m.CreateContainerView(ctx, client.ServiceContent.RootFolder, []string{"VirtualMachine"}, true)
+	v, err := m.CreateContainerView(c.ctx, client.ServiceContent.RootFolder, []string{"VirtualMachine"}, true)
 	if err != nil {
 		return vm, err
 	}
 
-	defer v.Destroy(ctx)
+	defer v.Destroy(c.ctx)
 
 	// Reference: http://pubs.vmware.com/vsphere-60/topic/com.vmware.wssdk.apiref.doc/vim.VirtualMachine.html
-	err = v.RetrieveWithFilter(ctx, []string{"VirtualMachine"}, []string{"config", "summary"}, &vm, property.Filter{"summary.config.name": name})
+	err = v.RetrieveWithFilter(c.ctx, []string{"VirtualMachine"}, []string{"config", "summary"}, &vm, property.Filter{"summary.config.name": name})
 	if err != nil {
 		return vm, err
 	}

@@ -2,7 +2,10 @@ package v2vvmware
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+
+	kubevirtv1alpha1 "kubevirt.io/v2v-vmware/pkg/apis/kubevirt/v1alpha1"
 )
 
 /*
@@ -33,4 +36,19 @@ func GetVMs(c *Client) ([]string, error) {
 
 	log.Info(fmt.Sprintf("GetVMs: retrieved list of virtual machines: %s", names))
 	return names, nil
+}
+
+func GetVM(c *Client, vmName string) (*kubevirtv1alpha1.VmwareVmDetail, error) {
+	vm, err := c.GetVM(vmName)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("GetVM: failed to get details of VMWare VM '%s'", vmName))
+		return nil, err
+	}
+
+	raw, _ := json.Marshal(vm)
+	vmDetail := kubevirtv1alpha1.VmwareVmDetail {
+		Raw: string(raw), // TODO: pick what's needed
+	}
+
+	return &vmDetail, nil
 }

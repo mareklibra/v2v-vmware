@@ -70,10 +70,6 @@ func readVmsList(r *ReconcileV2VVmware, request reconcile.Request, connectionSec
 	log.Info("readVmsList()")
 
 	updateStatusPhase(r, request, PhaseConnecting)
-
-	// time.Sleep(5 * time.Second) // Mimic connection check
-	// updateStatusPhase(r, request, PhaseConnectionSuccessful)
-
 	client, err := getClient(context.Background(), getLoginCredentials(connectionSecret))
 	if err != nil {
 		updateStatusPhase(r, request, PhaseConnectionFailed)
@@ -87,10 +83,6 @@ func readVmsList(r *ReconcileV2VVmware, request reconcile.Request, connectionSec
 		updateStatusPhase(r, request, PhaseLoadingVmsListFailed)
 		return err
 	}
-
-	// time.Sleep(10 * time.Second) // Mimic data retrieval delay
-	// XTODO: read following list from VMWare
-	//vmwareVms := []string{"fake_vm_1", "fake_vm_2", "fake_vm_3"}
 
 	err = updateVmsList(r, request, vmwareVms, MaxRetryCount)
 	if err != nil {
@@ -135,16 +127,26 @@ func updateVmsList(r *ReconcileV2VVmware, request reconcile.Request, vmwareVms [
 	return nil
 }
 
-func readVmDetail(r *ReconcileV2VVmware, request reconcile.Request, connectionSecret *corev1.Secret, vmwareVm *kubevirtv1alpha1.VmwareVm) (error) {
+func readVmDetail(r *ReconcileV2VVmware, request reconcile.Request, connectionSecret *corev1.Secret, vmwareVmName string) (error) {
 	log.Info("readVmDetail()")
 
+	updateStatusPhase(r, request, PhaseConnecting)
+	client, err := getClient(context.Background(), getLoginCredentials(connectionSecret))
+	if err != nil {
+		updateStatusPhase(r, request, PhaseConnectionFailed)
+		return err
+	}
+	defer client.Logout()
+
 	updateStatusPhase(r, request, PhaseLoadingVmDetail)
-	// TODO: read details of a single VM from VMWare (use vmwareVm.Name)
-	vmDetail := kubevirtv1alpha1.VmwareVmDetail{
-		DummyAttr: "foo",
+
+	vmDetail, err := GetVM(client, vmwareVmName)
+	if err != nil {
+		updateStatusPhase(r, request, PhaseLoadingVmDetailFailed)
+		return err
 	}
 
-	err := updateVmDetail(r, request, vmwareVm, &vmDetail, MaxRetryCount)
+	err = updateVmDetail(r, request, vmwareVmName, vmDetail, MaxRetryCount)
 	if err != nil {
 		updateStatusPhase(r, request, PhaseLoadingVmDetailFailed)
 		return err
@@ -154,20 +156,20 @@ func readVmDetail(r *ReconcileV2VVmware, request reconcile.Request, connectionSe
 	return nil
 }
 
-func updateVmDetail(r *ReconcileV2VVmware, request reconcile.Request, vmwareVm *kubevirtv1alpha1.VmwareVm, vmDetail *kubevirtv1alpha1.VmwareVmDetail, retryCount int) (error) {
+func updateVmDetail(r *ReconcileV2VVmware, request reconcile.Request, vmwareVmName string, vmDetail *kubevirtv1alpha1.VmwareVmDetail, retryCount int) (error) {
 	instance := &kubevirtv1alpha1.V2VVmware{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to get V2VVmware object to update detail of '%s' VM.", vmwareVm.Name))
+		log.Error(err, fmt.Sprintf("Failed to get V2VVmware object to update detail of '%s' VM.", vmwareVmName))
 		if retryCount > 0 {
 			sleepBeforeRetry()
-			return updateVmDetail(r, request, vmwareVm, vmDetail, retryCount - 1)
+			return updateVmDetail(r, request, vmwareVmName, vmDetail, retryCount - 1)
 		}
 		return err
 	}
 
 	for index, vm := range instance.Spec.Vms {
-		if  vm.Name == vmwareVm.Name {
+		if  vm.Name == vmwareVmName {
 			instance.Spec.Vms[index].DetailRequest = false // skip this detail next time
 			instance.Spec.Vms[index].Detail = *vmDetail
 		}
@@ -175,10 +177,10 @@ func updateVmDetail(r *ReconcileV2VVmware, request reconcile.Request, vmwareVm *
 
 	err = r.client.Update(context.TODO(), instance)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Failed to update V2VVmware object with detail of '%s' VM.", vmwareVm.Name))
+		log.Error(err, fmt.Sprintf("Failed to update V2VVmware object with detail of '%s' VM.", vmwareVmName))
 		if retryCount > 0 {
 			sleepBeforeRetry()
-			return updateVmDetail(r, request, vmwareVm, vmDetail, retryCount - 1)
+			return updateVmDetail(r, request, vmwareVmName, vmDetail, retryCount - 1)
 		}
 		return err
 	}

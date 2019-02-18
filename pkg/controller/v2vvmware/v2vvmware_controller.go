@@ -132,7 +132,7 @@ func (r *ReconcileV2VVmware) Reconcile(request reconcile.Request) (reconcile.Res
     var lastError error = nil
     for _, vm := range instance.Spec.Vms { // sequential read is probably good enough, just a single VM or a few of them are expected to be retrieved this way
     	if vm.DetailRequest {
-			err = readVmDetail(r, request, connectionSecret, &vm)
+			err = readVmDetail(r, request, connectionSecret, vm.Name)
 			if err != nil {
 				reqLogger.Error(err, fmt.Sprintf("Failed to read detail of '%s' VMWare VM.", vm.Name))
 				lastError = err

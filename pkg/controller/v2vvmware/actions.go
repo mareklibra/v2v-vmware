@@ -46,20 +46,53 @@ func checkConnectionOnly(r *ReconcileV2VVmware, request reconcile.Request, conne
 	return nil // TODO
 }
 */
+/*
+func logStruct(text string, v interface{}) {
+	strJson, _ := json.Marshal(v)
+	log.Info(text + string(strJson))
+}
+*/
+func getLoginCredentials(connectionSecret *corev1.Secret) (*LoginCredentials) {
+	data := connectionSecret.Data
+
+	credentials := &LoginCredentials{
+		username: string(data["username"]),
+		password: string(data["password"]),
+		host: string(data["url"]),
+	}
+
+	log.Info(fmt.Sprintf("VMWare credentials retrieved from a Secret, username: '%s', url: '%s'", credentials.username, credentials.host))
+	return credentials
+}
+
 // read whole list at once
 func readVmsList(r *ReconcileV2VVmware, request reconcile.Request, connectionSecret *corev1.Secret) error {
 	log.Info("readVmsList()")
 
 	updateStatusPhase(r, request, PhaseConnecting)
-	time.Sleep(5 * time.Second) // Mimic connection check
-	updateStatusPhase(r, request, PhaseConnectionSuccessful) // TODO: Use PhaseConnectionFailed
+
+	// time.Sleep(5 * time.Second) // Mimic connection check
+	// updateStatusPhase(r, request, PhaseConnectionSuccessful)
+
+	client, err := getClient(context.Background(), getLoginCredentials(connectionSecret))
+	if err != nil {
+		updateStatusPhase(r, request, PhaseConnectionFailed)
+		return err
+	}
+	defer client.Logout()
 
 	updateStatusPhase(r, request, PhaseLoadingVmsList)
-	time.Sleep(10 * time.Second) // Mimic data retrieval delay
-	// TODO: read following list from VMWare
-	vmwareVms := []string{"fake_vm_1", "fake_vm_2", "fake_vm_3"}
+	vmwareVms, err := GetVMs(client)
+	if err != nil {
+		updateStatusPhase(r, request, PhaseLoadingVmsListFailed)
+		return err
+	}
 
-	err := updateVmsList(r, request, vmwareVms, MaxRetryCount)
+	// time.Sleep(10 * time.Second) // Mimic data retrieval delay
+	// XTODO: read following list from VMWare
+	//vmwareVms := []string{"fake_vm_1", "fake_vm_2", "fake_vm_3"}
+
+	err = updateVmsList(r, request, vmwareVms, MaxRetryCount)
 	if err != nil {
 		updateStatusPhase(r, request, PhaseLoadingVmsListFailed)
 		return err
